@@ -6,7 +6,7 @@ using namespace std;
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
-    Server s;
+    Server s(5555);
     s.startServer();
    /* QQueue<int> q;
     for (int i=0;i<5;++i)

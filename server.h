@@ -10,14 +10,21 @@ class Server: public QTcpServer
     Q_OBJECT
 public:
 
-    QTcpSocket *socket;
- //   QQueue<QTcpSocket*> sockets;
-    QByteArray data;
+    QTcpSocket *m_socket;
+    int m_port;
+ ///   QQueue<QTcpSocket*> sockets;
+    QByteArray m_data;
+    quint16 m_nextBlockSize;
 
-    Server();
-public slots:
+    Server(int port);
     void startServer();
-    void incomingConnection(int socketDescriptor);
+
+private:
+    void sendToClient(QTcpSocket *pSocket,const QString str);
+
+public slots:
+
+    void slotNewConnection();
     void sockReady();
     void sockDisc();
 
