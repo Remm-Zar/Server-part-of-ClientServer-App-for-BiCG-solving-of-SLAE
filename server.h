@@ -20,7 +20,7 @@ public:
     void startServer();
 
 private:
-    void sendToClient(QTcpSocket *pSocket,const QString str);
+    void sendToClient(QTcpSocket *pSocket);
 
 public slots:
 
