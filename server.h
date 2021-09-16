@@ -13,8 +13,9 @@ public:
     QTcpSocket *m_socket;
     int m_port;
  ///   QQueue<QTcpSocket*> sockets;
-    QByteArray m_data;
-    quint16 m_nextBlockSize;
+    QByteArray m_mat;
+    QByteArray m_vec;
+    quint64 m_nextBlockSize;
 
     Server(int port);
     void startServer();

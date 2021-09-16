@@ -1,4 +1,6 @@
 #include "server.h"
+#include "solver.h"
+#include "algvect.h"
 #include <QDataStream>
 #include <QTime>
 #include <QFile>
@@ -35,13 +37,11 @@ void Server::slotNewConnection()
 
     qDebug()<<m_socket->socketDescriptor()<<" Client connected";
 
-    qDebug()<<"Send to client: status: connected";
-
 }
 
 void Server::sockReady()
 {
-    qDebug()<<"Status: readyRead";
+    qDebug()<<"Status: reading of data";;
     QTcpSocket *clientSocket=m_socket;/*(QTcpSocket*)sender();*/
     QDataStream in(clientSocket);
     in.setVersion(QDataStream::Qt_5_9);
@@ -59,52 +59,63 @@ void Server::sockReady()
         qDebug()<<"2";
         return;
     }
-    m_data=m_socket->readAll();
-
-    double *N;
-    N=new double[m_data.size()/sizeof (double)];
-    memcpy(N,m_data.data(),m_data.size());
-    for (unsigned int i=0;i<m_data.size()/sizeof (double);++i)
+    qint64 matSize;
+    in>>matSize;
+    m_mat=m_socket->read(matSize);
+    m_vec=m_socket->readAll();
+    QFile m("C:/Users/Hp/Desktop/QT projects/ServerApp/Mat.txt"),v("C:/Users/Hp/Desktop/QT projects/ServerApp/Vec.txt");
+    if (!m.open(QIODevice::WriteOnly)||!v.open(QIODevice::WriteOnly))
     {
-        qDebug()<<N[i]<<" ";
+        qDebug()<<"Can't open file";
     }
-    delete N;
-    sendToClient(m_socket);
+    else
+    {
+        m.write(m_mat);
+        m.close();
+        v.write(m_vec);
+        v.close();
+        sendToClient(m_socket);
+    }
 
 }
 
 void Server::sendToClient(QTcpSocket *pSocket)
 {
     pSocket=m_socket;
-    qDebug()<<"Status: sendToClient: "<<m_data.toStdString().c_str();
-    QString fileName="sys3.txt";
-    QFile file("C:/Users/Hp/Desktop/QT projects/"+fileName);
-    if (!file.open(QIODevice::ReadWrite))
+    QString fNameMat="C:/Users/Hp/Desktop/QT projects/ServerApp/Mat.txt",fNameVec="C:/Users/Hp/Desktop/QT projects/ServerApp/Vec.txt";
+    QByteArray arr,q;
+    CSR A(fNameMat);
+    AlgVect v(fNameVec),res;
+    qDebug()<<"Status: solving the task...";
+    Solver s(A,v);
+    QTime time=QTime::currentTime();
+    res=s.solve();
+    QTime diff=QTime::currentTime().addMSecs(-time.msec());
+    for (unsigned int i=0;i<res.size();++i)
     {
-        qDebug()<<"File error";
-        return;
+        q.append(QString::number(res.data().at(i)).toStdString().c_str());
+        q.append(" ");
     }
-    file.write(m_data);
-    file.seek(0);
-    QByteArray arr;
+    q.append("\n");
+    qDebug()<<"Sending the answer...";
     QDataStream out(&arr,QIODevice::WriteOnly);
     out.setVersion(QDataStream::Qt_5_9);
-    out<<quint16{0};
-    QByteArray q=file.readAll();
-    file.close();
+    out<<quint64{0}<<diff;
     arr.append(q);
     out.device()->seek(0);
-    out<<quint16(arr.size()-sizeof(quint16));
+    out<<quint64(arr.size()-sizeof(quint64));
     qint64 x=0;
     while (x<arr.size())
     {
         qint64 y=m_socket->write(arr);
         x+=y;
     }
+
+    qDebug()<<"Done\nListening...";
 }
 
 void Server::sockDisc()
 {
-    qDebug()<<"Client is disconnected";
+    qDebug()<<"Client "<<m_socket->socketDescriptor()<<" is disconnected";
     m_socket->deleteLater();
 }
