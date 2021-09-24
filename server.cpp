@@ -45,9 +45,10 @@ void Server::sockReady()
     QTcpSocket *clientSocket=m_socket;/*(QTcpSocket*)sender();*/
     QDataStream in(clientSocket);
     in.setVersion(QDataStream::Qt_5_9);
+    qDebug()<<"recieved data: "<<m_socket->size()<<" bytes";
     if (!m_nextBlockSize)
     {
-        if (m_socket->bytesAvailable()<sizeof(quint16))
+        if (m_socket->bytesAvailable()<sizeof(quint64))
         {
             qDebug()<<"1:"<<m_socket->bytesAvailable();
             return;
@@ -76,7 +77,8 @@ void Server::sockReady()
         v.close();
         sendToClient(m_socket);
     }
-
+    m_mat.clear();
+    m_vec.clear();
 }
 
 void Server::sendToClient(QTcpSocket *pSocket)
@@ -94,7 +96,7 @@ void Server::sendToClient(QTcpSocket *pSocket)
     for (unsigned int i=0;i<res.size();++i)
     {
         q.append(QString::number(res.data().at(i)).toStdString().c_str());
-        q.append(" ");
+        q.append("  ");
     }
     q.append("\n");
     qDebug()<<"Sending the answer...";
@@ -110,12 +112,13 @@ void Server::sendToClient(QTcpSocket *pSocket)
         qint64 y=m_socket->write(arr);
         x+=y;
     }
-
+    m_nextBlockSize=0;
     qDebug()<<"Done\nListening...";
 }
 
 void Server::sockDisc()
 {
     qDebug()<<"Client "<<m_socket->socketDescriptor()<<" is disconnected";
+    m_socket->close();
     m_socket->deleteLater();
 }
