@@ -3,14 +3,14 @@
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QList>
-#include <QQueue>
+#include <QMap>
 
 class Server: public QTcpServer
 {
     Q_OBJECT
 public:
 
-    QTcpSocket *m_socket;
+    QMap<int,QTcpSocket*> SClients;
     int m_port;
  ///   QQueue<QTcpSocket*> sockets;
     QByteArray m_mat;
@@ -27,7 +27,7 @@ public slots:
 
     void slotNewConnection();
     void sockReady();
-    void sockDisc();
+    void sockDisc(int key);
 
 };
 

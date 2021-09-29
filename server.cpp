@@ -4,6 +4,7 @@
 #include <QDataStream>
 #include <QTime>
 #include <QFile>
+#include <QSignalMapper>
 
 Server::Server(int port):m_port(port),m_nextBlockSize(0){}
 
@@ -24,66 +25,72 @@ void Server::startServer()
 
 void Server::slotNewConnection()
 {
+    QTcpSocket *m_socket=new QTcpSocket;
     m_socket=this->nextPendingConnection();
-   // m_socket=new QTcpSocket(this);
-    //m_socket->setSocketDescriptor(socketDescriptor);
-   // QTcpSocket *sock=this->nextPendingConnection();
-   // connect(sock,SIGNAL(readyRead()),this,SLOT(sockReady()));
-   // connect(sock,SIGNAL(disconnected()),this,SLOT(sockDisc()));
-   // sockets.enqueue(sock);
+    QSignalMapper mapper(this);
+    connect(&mapper,SIGNAL(mapped(int)),this,SLOT(sockDisc(int)));
+    int disc=m_socket->socketDescriptor();
+    SClients.insert(disc,m_socket);
+    connect(SClients[disc],SIGNAL(readyRead()),this,SLOT(sockReady()));
+    connect(SClients[disc],SIGNAL(disconnected()),&mapper,SLOT(map()));
+    mapper.setMapping(SClients[disc],disc);
 
-    connect(m_socket,SIGNAL(readyRead()),this,SLOT(sockReady()));
-    connect(m_socket,SIGNAL(disconnected()),this,SLOT(sockDisc()));
 
-    qDebug()<<m_socket->socketDescriptor()<<" Client connected";
+    qDebug()<<disc<<" Client connected";
 
 }
 
 void Server::sockReady()
 {
     qDebug()<<"Status: reading of data";;
-    QTcpSocket *clientSocket=m_socket;/*(QTcpSocket*)sender();*/
-    QDataStream in(clientSocket);
-    in.setVersion(QDataStream::Qt_5_9);
-    qDebug()<<"recieved data: "<<m_socket->size()<<" bytes";
-    if (!m_nextBlockSize)
+  // QTcpSocket *clientSocket=m_socket;/*(QTcpSocket*)sender();*/
+    foreach(int i,SClients.keys())
     {
-        if (m_socket->bytesAvailable()<sizeof(quint64))
+        QDataStream in(SClients[i]);
+        in.setVersion(QDataStream::Qt_5_9);
+        qDebug()<<"recieved data: "<<SClients[i]->size()<<" bytes";
+        if (!m_nextBlockSize)
         {
-            qDebug()<<"1:"<<m_socket->bytesAvailable();
+            if (SClients[i]->bytesAvailable()<sizeof(quint64))
+            {
+                qDebug()<<"1:"<<SClients[i]->bytesAvailable();
+                return;
+            }
+            in>>m_nextBlockSize;
+        }
+        if (SClients[i]->bytesAvailable()<m_nextBlockSize)
+        {
+            qDebug()<<"2";
             return;
         }
-        in>>m_nextBlockSize;
+        qint64 matSize;
+        in>>matSize;
+        m_mat=SClients[i]->read(matSize);
+        m_vec=SClients[i]->readAll();
+        QFile m("C:/Users/Hp/Desktop/QT projects/ServerApp/Mat.txt"),v("C:/Users/Hp/Desktop/QT projects/ServerApp/Vec.txt");
+        if (!m.open(QIODevice::WriteOnly)||!v.open(QIODevice::WriteOnly))
+        {
+            qDebug()<<"Can't open file";
+        }
+        else
+        {
+            m.write(m_mat);
+            m.close();
+            v.write(m_vec);
+            v.close();
+            sendToClient(SClients[i]);
+        }
+        m_mat.clear();
+        m_vec.clear();
+        emit SClients[i]->disconnected();
+        SClients.remove(i);
     }
-    if (m_socket->bytesAvailable()<m_nextBlockSize)
-    {
-        qDebug()<<"2";
-        return;
-    }
-    qint64 matSize;
-    in>>matSize;
-    m_mat=m_socket->read(matSize);
-    m_vec=m_socket->readAll();
-    QFile m("C:/Users/Hp/Desktop/QT projects/ServerApp/Mat.txt"),v("C:/Users/Hp/Desktop/QT projects/ServerApp/Vec.txt");
-    if (!m.open(QIODevice::WriteOnly)||!v.open(QIODevice::WriteOnly))
-    {
-        qDebug()<<"Can't open file";
-    }
-    else
-    {
-        m.write(m_mat);
-        m.close();
-        v.write(m_vec);
-        v.close();
-        sendToClient(m_socket);
-    }
-    m_mat.clear();
-    m_vec.clear();
+
 }
 
 void Server::sendToClient(QTcpSocket *pSocket)
 {
-    pSocket=m_socket;
+
     QString fNameMat="C:/Users/Hp/Desktop/QT projects/ServerApp/Mat.txt",fNameVec="C:/Users/Hp/Desktop/QT projects/ServerApp/Vec.txt";
     QByteArray arr,q;
     CSR A(fNameMat);
@@ -109,16 +116,16 @@ void Server::sendToClient(QTcpSocket *pSocket)
     qint64 x=0;
     while (x<arr.size())
     {
-        qint64 y=m_socket->write(arr);
+        qint64 y=pSocket->write(arr);
         x+=y;
     }
     m_nextBlockSize=0;
     qDebug()<<"Done\nListening...";
 }
 
-void Server::sockDisc()
+void Server::sockDisc(int key)
 {
-    qDebug()<<"Client "<<m_socket->socketDescriptor()<<" is disconnected";
-    m_socket->close();
-    m_socket->deleteLater();
+    qDebug()<<"\nClient "<<key<<" is disconnected";
+    SClients[key]->close();
+    SClients[key]->deleteLater();
 }
