@@ -37,7 +37,6 @@ void Server::slotNewConnection()
 
 
     qDebug()<<disc<<" Client connected";
-
 }
 
 void Server::sockReady()
@@ -82,7 +81,8 @@ void Server::sockReady()
         }
         m_mat.clear();
         m_vec.clear();
-        emit SClients[i]->disconnected();
+//       SClients[i]->close();
+//        //emit SClients[i]->disconnected();
         SClients.remove(i);
     }
 
@@ -121,11 +121,13 @@ void Server::sendToClient(QTcpSocket *pSocket)
     }
     m_nextBlockSize=0;
     qDebug()<<"Done\nListening...";
+    pSocket->close();
+    //emit SClients[i]->disconnected();
 }
 
 void Server::sockDisc(int key)
 {
     qDebug()<<"\nClient "<<key<<" is disconnected";
     SClients[key]->close();
-    SClients[key]->deleteLater();
+    //SClients[key]->deleteLater();
 }
