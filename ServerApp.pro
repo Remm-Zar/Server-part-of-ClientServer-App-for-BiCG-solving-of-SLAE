@@ -11,6 +11,7 @@ LIBS+=-fopenmp
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+        SlauSolver.cpp \
         algvect.cpp \
         csr.cpp \
         main.cpp \
@@ -23,6 +24,7 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 HEADERS += \
+    SlauSolver.h \
     algvect.h \
     csr.h \
     server.h \

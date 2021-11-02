@@ -3,7 +3,6 @@
 #include <QFile>
 #include <cmath>
 #include <parallel/algorithm>
-//#include <thread>
 
 
 using namespace std;
@@ -37,20 +36,28 @@ AlgVect::AlgVect(vect_double &&other)
   m_v=other;
   other.clear();
 }
+AlgVect::AlgVect(double* v,long n)
+{
+    m_n=n;
+    for (long i=0;i<n;++i)
+    {
+        m_v.push_back(v[i]);
+    }
+}
 ////////////////////////////////////////////////////////////////
 vect_double AlgVect::data()const//getter
 {
     return m_v;
 }
-unsigned int AlgVect::size()const//to get size
+unsigned long AlgVect::size()const//to get size
 {
     return m_n;
 }
-void AlgVect::set(double num,unsigned int idx)//to set an element
+void AlgVect::set(double num,unsigned long idx)//to set an element
 {
     m_v[idx]=num;
 }
-void AlgVect::changeCapacity(int capacity)//increase the volume of the vector
+void AlgVect::changeCapacity(long capacity)//increase the volume of the vector
 {
     m_v.reserve(capacity);
 }
@@ -63,20 +70,35 @@ vect_double::iterator AlgVect::end()
 {
     return m_v.end();
 }
-
-bool AlgVect::continueProc(double eps)
+double AlgVect::eNorm()
 {
-    bool con_proc=true;
+    double res=0;
     vect_double::iterator it=m_v.begin();
     while (it!=m_v.end())
     {
-        if (abs(*it)<eps)
-        {
-            con_proc=false;
-            break;
-        }
+        res+=(*it)*(*it);
         ++it;
     }
+    res=sqrt(res);
+    return res;
+}
+bool AlgVect::continueProc(double eps,double b_norm)
+{
+    bool con_proc=true;
+    double res=0;
+    vect_double::iterator it=m_v.begin();
+    while (it!=m_v.end())
+    {
+        res+=(*it)*(*it);
+        ++it;
+    }
+    res=sqrt(res);
+    if (m_n>=600)
+    {
+        res=res/b_norm;
+    }
+    cout<<"\nNorm of residual= "<<res<<" meets the conds? ";
+    if (res<eps)con_proc=false;
     return con_proc;
 }
 AlgVect AlgVect::cleanNum()
@@ -85,7 +107,7 @@ AlgVect AlgVect::cleanNum()
     vect_double::iterator it=copy.m_v.begin();
     while (it!=copy.m_v.end())
     {
-        if (abs(*it)<0.00001)
+        if (abs(*it)<0.00000001)
         {
            *it=0;
         }
@@ -110,7 +132,7 @@ AlgVect& AlgVect::operator=(AlgVect &&v)
 }
 double AlgVect::operator*(const AlgVect &v) const//scalar multipication
 {
-    unsigned int i=0;
+    unsigned long i=0;
     double res=0;
     while (i<m_n)
     {
@@ -121,7 +143,7 @@ double AlgVect::operator*(const AlgVect &v) const//scalar multipication
 }
 double AlgVect::operator*(AlgVect &&v) const//scalar multipication
 {
-    unsigned int i=0;
+    unsigned long i=0;
     double res=0;
     while (i<m_n)
     {
@@ -131,21 +153,11 @@ double AlgVect::operator*(AlgVect &&v) const//scalar multipication
     return res;
 }
 
-/* AlgVect AlgVect::operator-()
-{
-    AlgVect temp;
-    for (unsigned int i=0;i<m_n;++i)
-    {
-        temp.m_v[i]=-(this->m_v[i]);
-    }
-    temp.m_n=this->m_n;
-    return temp;
-}*/
 AlgVect AlgVect::operator+(const AlgVect &other)//summ in Decart's basis
 {
     AlgVect temp;
     temp.m_n=this->m_n;
-    for (unsigned int i=0;i<m_n;++i)
+    for (unsigned long i=0;i<m_n;++i)
     {
         temp.m_v.push_back(this->m_v[i]+other.m_v[i]);
     }
@@ -155,7 +167,7 @@ AlgVect AlgVect::operator+(AlgVect &&other)//summ in Decart's basis
 {
     AlgVect temp;
     temp.m_n=this->m_n;
-    for (unsigned int i=0;i<m_n;++i)
+    for (unsigned long i=0;i<m_n;++i)
     {
         temp.m_v.push_back(this->m_v[i]+other.m_v[i]);
     }
@@ -165,7 +177,7 @@ AlgVect AlgVect::operator-(const AlgVect &other)//subtraction
 {
     AlgVect temp;
     temp.m_n=this->m_n;
-    for (unsigned int i=0;i<m_n;++i)
+    for (unsigned long i=0;i<m_n;++i)
     {
         temp.m_v.push_back(this->m_v[i]-other.m_v[i]);
     }
@@ -176,7 +188,7 @@ AlgVect AlgVect::operator-(AlgVect &&other)//subtraction
 {
     AlgVect temp;
     temp.m_n=this->m_n;
-    for (unsigned int i=0;i<m_n;++i)
+    for (unsigned long i=0;i<m_n;++i)
     {
         temp.m_v.push_back(this->m_v[i]-other.m_v[i]);
     }
@@ -186,7 +198,7 @@ AlgVect AlgVect::operator-(AlgVect &&other)//subtraction
 AlgVect operator*(double num,AlgVect v)
 {
     AlgVect temp(v);
-    for (unsigned int i=0;i<v.size();++i)
+    for (unsigned long i=0;i<v.size();++i)
     {
         temp.set(v.data()[i]*num,i);
     }

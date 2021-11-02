@@ -93,13 +93,12 @@ void Server::sendToClient(QTcpSocket *pSocket)
 
     QString fNameMat="C:/Users/Hp/Desktop/QT projects/ServerApp/Mat.txt",fNameVec="C:/Users/Hp/Desktop/QT projects/ServerApp/Vec.txt";
     QByteArray arr,q;
-    CSR A(fNameMat);
-    AlgVect v(fNameVec),res;
     qDebug()<<"Status: solving the task...";
-    Solver s(A,v);
-    QTime time=QTime::currentTime();
-    res=s.solve();
-    QTime diff=QTime::currentTime().addMSecs(-time.msec());
+    Solver s(fNameMat,fNameVec);
+    double t=-1;
+    AlgVect res=s.solve(4,t);
+    t*=1000;
+    QTime time(int(t));
     for (unsigned int i=0;i<res.size();++i)
     {
         q.append(QString::number(res.data().at(i)).toStdString().c_str());
@@ -109,7 +108,7 @@ void Server::sendToClient(QTcpSocket *pSocket)
     qDebug()<<"Sending the answer...";
     QDataStream out(&arr,QIODevice::WriteOnly);
     out.setVersion(QDataStream::Qt_5_9);
-    out<<quint64{0}<<diff;
+    out<<quint64{0}<<time;
     arr.append(q);
     out.device()->seek(0);
     out<<quint64(arr.size()-sizeof(quint64));

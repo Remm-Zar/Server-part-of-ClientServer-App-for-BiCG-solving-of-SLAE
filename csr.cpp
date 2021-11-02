@@ -11,7 +11,7 @@
 using namespace std;
 
 typedef vector<double> vect_double;
-typedef vector<int> vect;
+typedef vector<long> vect;
 typedef vector<vector<double>> mat;
 
 CSR::CSR(const QString& input)
@@ -24,7 +24,7 @@ CSR::CSR(const QString& input)
     }
     else
     {
-        int i_=1,i=1,j=0,nnz=0,dnnz=0;
+        long i_=1,i=1,j=0,nnz=0,dnnz=0;
         QList<QString> nums;
         QString s;
         while(!f.atEnd())
@@ -58,9 +58,9 @@ CSR::CSR(const QString& input)
 }
 
 CSR::CSR(const mat& M,bool forPrecond)  {
-    int m = M.size(), i, j;
+    long m = M.size(), i, j;
     m==0?n=0:n = M[0].size();
-    int NNZ = 0;
+    long NNZ = 0;
     //double start=omp_get_wtime();
     for (i = 0; i < m; ++i) {
         for (j = 0; j < n; ++j) {
@@ -84,9 +84,9 @@ CSR::CSR(const mat& M,bool forPrecond)  {
 
 CSR::CSR(mat&& M,bool forPrecond)//necessity
 {
-    int m = M.size(), i, j;
+    long m = M.size(), i, j;
     m==0?n=0:n = M[0].size();
-    int NNZ = 0;
+    long NNZ = 0;
 
     for (i = 0; i < m; ++i) {
         for (j = 0; j < n; ++j) {
@@ -104,6 +104,8 @@ CSR::CSR(mat&& M,bool forPrecond)//necessity
         }
         IA.push_back(NNZ);
     }
+    this->m=m;
+    nz=NNZ;
     M.clear();
     M.shrink_to_fit();
 }
@@ -174,11 +176,12 @@ vect CSR::get_JA()
     return JA;
 }
 
-double CSR::get(int x, int y)
+double CSR::get(long x, long y)
 {
     double res = 0;
-    int i = IA[x];
-    while (i < IA[x + 1] && JA[i] <= y) {
+    long i = IA[x];
+    while (i < IA[x + 1] && JA[i] <= y)
+    {
         if (JA[i] == y) res = A[i];
         i++;
     }
@@ -210,33 +213,33 @@ void CSR::printMatrix() {
     cout<<"n="<<n<<endl;
 
 
-    int size = IA.size() - 1;
+    long size = IA.size() - 1;
     if (size>0)
     {
         double** ar = NULL;
         ar = new double* [size];
-        for (int i = 0; i < size; i++)
+        for (long i = 0; i < size; i++)
         {
             ar[i] = new double[n];
-            for (int j = 0; j < n; j++)
+            for (long j = 0; j < n; j++)
                 ar[i][j] = 0;
         }
 
 
-        int j_point = 0;
-        for (int i = 0; i < size; i++)
+        long j_point = 0;
+        for (long i = 0; i < size; i++)
         {
-            int n = 0;
-            for (int j = 0; j < IA[i + 1] - IA[i]; j++)
+            long n = 0;
+            for (long j = 0; j < IA[i + 1] - IA[i]; j++)
             {
                 n++;
                 ar[i][JA[j_point + j]] = A[j_point + j];
             }
             j_point += n;
         }
-        for (int i = 0; i < size; i++) {
+        for (long i = 0; i < size; i++) {
             cout<<"|";
-            for (int j = 0; j < n; j++) {
+            for (long j = 0; j < n; j++) {
                 cout.width(5);
                 cout <<setprecision(3)<< *(*(ar + i) + j) << " ";
             }
@@ -244,7 +247,7 @@ void CSR::printMatrix() {
         }
 
       //  double* cur = ar[0];
-        for (int i = 0; i < size; i++)
+        for (long i = 0; i < size; i++)
         {
             delete[] ar[i];
         }
@@ -257,23 +260,24 @@ void CSR::printMatrix() {
 CSR CSR::T()const
 {
     CSR transp(*this);
-    int point=0;
+    long point=0;
     mat A_t;
     vect IA_t;
     IA_t.reserve(IA.size()-1);
 #pragma omp parallel for schedule(runtime)
-    for (unsigned int i=0;i<IA.size()-1;++i)
+    for (unsigned long i=0;i<IA.size()-1;++i)
     {
         IA_t[i]=IA[i+1]-IA[i];
     }
-    for (unsigned int i=0;i<A.size();++i)
+
+    for (unsigned long i=0;i<A.size();++i)
     {
         A_t.push_back({A[i]});
     }
 
-    for (unsigned int i=0;i<IA.size()-1;++i)
+    for (unsigned long i=0;i<IA.size()-1;++i)
     {
-        for ( int j=0;j<IA[i+1]-IA[i];++j)
+        for (long j=0;j<IA[i+1]-IA[i];++j)
         {
           //  A_t[point][1]=i;
             --IA_t[i];
@@ -286,14 +290,14 @@ CSR CSR::T()const
     __gnu_parallel::sort(A_t.begin(),A_t.end(),[](vect_double a,vect_double b){return a[1]<b[1];});
     __gnu_parallel::sort(A_t.begin(),A_t.end(),[](vect_double a,vect_double b){return (a[1]==b[1])&&(a[2]<b[2]);});
 #pragma omp parallel for schedule(runtime)
-    for (unsigned int i=0;i<A.size();++i)
+    for (unsigned long i=0;i<A.size();++i)
     {
        transp.A[i]=A_t[i][0];
        transp.JA[i]=A_t[i][2];
     }
 
-    int sum=0;
-    for (unsigned int i=0;i<IA.size()-1;++i)
+    long sum=0;
+    for (unsigned long i=0;i<IA.size()-1;++i)
     {
         sum+=IA_t[i];
         transp.IA[i+1]=sum;
@@ -301,34 +305,37 @@ CSR CSR::T()const
     return transp;
 
 }
-vect_double CSR::Multiply(const vect_double& x)
+AlgVect CSR::Multiply(const AlgVect& x)
 {
-    int m = IA.size() - 1;
+    long m = IA.size() - 1;
     vect_double res(m,0);
 
 #pragma omp parallel for schedule(runtime)
-    for (int i = 0; i < m; i++)
+    for (long i = 0; i < m; i++)
     {
-     for (int j = IA[i]; j < IA[i + 1]; j++)
+     for (long j = IA[i]; j < IA[i + 1]; j++)
         {
-            res[i] = res[i] + x[JA[j]] * A[j];
+         //if (omp_get_thread_num()==0)cout<<"nult j v: "<<j<<"\n";
+            res[i] = res[i] + x.data()[JA[j]] * A[j];
         }
     }
-    return res;
+    AlgVect ans(res);
+    return ans;
 }
 
 CSR CSR::Multiply(const CSR& M)
 {
     CSR copy(M);
-    int x = M.n, y = IA.size() - 1;
+    long x = M.n, y = IA.size() - 1;
     mat ar(y,vect_double());
-#pragma omp parallel for
-    for (int i = 0; i < y; i++)
+#pragma omp parallel for schedule(runtime)
+    for (long i = 0; i < y; i++)
     {
         vect_double cur(x,0);
-        for (int j = 0; j < x; j++)
+        for (long j = 0; j < x; j++)
         {
-            for(int k=0;k<y;k++)
+           // if (omp_get_thread_num()==0)cout<<"nult j m: "<<j<<"\n";
+            for(long k=0;k<y;k++)
                 cur[j] += get(i,k) * copy.get(k,j);
         }
         ar[i]=move(cur);
@@ -345,10 +352,9 @@ CSR& CSR::operator=(const CSR& other)
     IA.clear();
     JA.clear();
 
-    unsigned int i=0;
+    unsigned long i=0;
     for ( ; i < other.A.size(); ++i) {
         A.push_back(other.A[i]);
-       // IA.push_back(other.IA[i]);
         JA.push_back(other.JA[i]);
     }
     for ( i=0; i < other.IA.size(); ++i) {
@@ -379,9 +385,9 @@ CSR CSR::operator+(CSR& other)
 {
     mat res_mat;
     vect_double line={};
-    for(int i=0; i<n;i++){
+    for(long i=0; i<n;i++){
         line = {};
-        for(int j=0; j<n; j++){
+        for(long j=0; j<n; j++){
             double t = this->get(i,j);
             double o = other.get(i,j);
             if(i==j){

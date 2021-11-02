@@ -12,7 +12,7 @@
 using namespace std;
 
 typedef vector<double> vect_double;
-typedef vector<int> vect;
+typedef vector<long> vect;
 typedef vector<vector<double>> mat;
 
 class CSR {
@@ -21,8 +21,9 @@ class CSR {
     vect_double A={};//non-zero elements vector
     vect IA = {0}; //an array denoting the number of non-zero elements above the i-th line
     vect JA={}; //an array of j-indexes corresponding to elements from the array A
-   // int* n=nullptr; //the horizontal length of the matrix (a special pointer to get rid of any data when deconstructing the CSR matrix)
-    int n=0;
+    long n=0;//amount of lines
+    long m=0;//amount of columns
+    long nz=0;//amount of non-zero elements
     //it's needed for precondition
 
 public:
@@ -36,7 +37,7 @@ public:
     CSR(const CSR& M);
     CSR(CSR&& M);
     CSR(const initializer_list<vect_double>& list);
-    CSR(const QString& matrixFile);
+    CSR(const QString& input);
     //THIS IS ONLY FOR SOLVER USE!!! (костыль)
     CSR(const vect_double& out_A={}, const vect &out_IA={}, const vect &out_JA={},const  vect_double& out_d={},const  vect &out_Id={},const  vect &out_Jd={});
     ~CSR();
@@ -45,14 +46,26 @@ public:
     vect_double get_A();
     vect get_IA();
     vect get_JA();
-    double get(int x, int y); //геттер для координаты(работает достаточно быстро)
+    long get_n()
+    {
+        return n;
+    }
+    long get_m()
+    {
+        return m;
+    }
+    long get_nz()
+    {
+        return nz;
+    }
+    double get(long x, long y); //геттер для координаты(работает достаточно быстро)
     CSR T()const;
 
 
     void printMatrix(); //печать матрицы по массивам A,IA,JA и в виде простой матрицы
 
     //Multiply functions
-    vect_double Multiply(const vect_double& x);
+    AlgVect Multiply(const AlgVect& x);
     CSR Multiply(const CSR& M);
 
     CSR operator+(CSR& other);

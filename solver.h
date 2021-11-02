@@ -7,7 +7,7 @@
 using namespace std;
 
 typedef vector<double> vect_double;
-typedef vector<int> vect;
+typedef vector<long> vect;
 typedef vector<vector<double>> mat;
 
 
@@ -17,15 +17,12 @@ private:
     CSR m_matrix={{}};
     CSR m_precond={{}};//reversed-diagonal matrix
     AlgVect m_vec={{}};
-    double eps=0.001;
 public:
     Solver(){};
-    Solver(const CSR &M,const AlgVect &v);
+    Solver(const QString& matrixFile,const QString& vectorFile);
     Solver(CSR &&M,AlgVect &&v);
 
-    void setPrecision(double prec);
-
-    AlgVect solve();
+    AlgVect solve(int threads,double &time);
 };
 
 #endif // SOLVER_H

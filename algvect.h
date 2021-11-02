@@ -12,11 +12,12 @@ typedef vector<double> vect_double;
 class AlgVect
 {
 private:
-    unsigned int m_n=0;
+    unsigned long m_n=0;
     vect_double m_v={};
 
 public:
     AlgVect(){}
+    AlgVect(double*v,long n);
     AlgVect(const vect_double &other):m_n(other.size()),m_v(other){}
     AlgVect(vect_double &&other);
     AlgVect(const AlgVect &other):m_n{other.m_n},m_v{other.m_v}{}
@@ -36,13 +37,14 @@ public:
 
     ////////////////////////////////////////////////////////////////
     vect_double data()const;//getter
-    unsigned int size()const;//to get size of vector
-    void set(double num,unsigned int idx);//to set an element
-    void changeCapacity(int capacity);//to increase the volume of the vector
+    unsigned long size()const;//to get size of vector
+    void set(double num,unsigned long idx);//to set an element
+    void changeCapacity(long capacity);//to increase the volume of the vector
     vect_double::iterator begin();
     vect_double::iterator end();
-    bool continueProc(double eps);
-    AlgVect cleanNum();
+    bool continueProc(double eps,double b_norm);
+    AlgVect cleanNum();//rounding
+    double eNorm();
     /////////OPERATORS///////////////////////////////////////////////
     AlgVect& operator=(const AlgVect &v);
     AlgVect& operator=(AlgVect &&v);
