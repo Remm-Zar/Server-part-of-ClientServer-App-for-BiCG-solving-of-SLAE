@@ -83,7 +83,7 @@ void Server::sockReady()
         m_vec.clear();
 //       SClients[i]->close();
 //        //emit SClients[i]->disconnected();
-        SClients.remove(i);
+        //SClients.remove(i);
     }
 
 }
@@ -96,9 +96,9 @@ void Server::sendToClient(QTcpSocket *pSocket)
     qDebug()<<"Status: solving the task...";
     Solver s(fNameMat,fNameVec);
     double t=-1;
+    QTime start=QTime::currentTime();
     AlgVect res=s.solve(4,t);
-    t*=1000;
-    QTime time(int(t));
+    QTime end=QTime::currentTime(),diff=end.addMSecs(-start.msec());
     for (unsigned int i=0;i<res.size();++i)
     {
         q.append(QString::number(res.data().at(i)).toStdString().c_str());
@@ -108,7 +108,7 @@ void Server::sendToClient(QTcpSocket *pSocket)
     qDebug()<<"Sending the answer...";
     QDataStream out(&arr,QIODevice::WriteOnly);
     out.setVersion(QDataStream::Qt_5_9);
-    out<<quint64{0}<<time;
+    out<<quint64{0}<<diff;
     arr.append(q);
     out.device()->seek(0);
     out<<quint64(arr.size()-sizeof(quint64));
@@ -120,7 +120,7 @@ void Server::sendToClient(QTcpSocket *pSocket)
     }
     m_nextBlockSize=0;
     qDebug()<<"Done\nListening...";
-    pSocket->close();
+   // pSocket->close();
     //emit SClients[i]->disconnected();
 }
 
