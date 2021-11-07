@@ -2,8 +2,10 @@
 #include <QDataStream>
 #include <QTime>
 #include <QSignalMapper>
+#include <algorithm>
 
-Server::Server(int port):m_port(port),m_nextBlockSize(0){}
+int Server::numClients=0;
+Server::Server(int port,QCoreApplication *app):m_port(port),m_nextBlockSize(0),m_app(app){}
 
 void Server::startServer()
 {
@@ -13,6 +15,7 @@ void Server::startServer()
         m_start=QTime::currentTime();
         m_timer=new QTimer;
         connect(m_timer,SIGNAL(timeout()),this,SLOT(sendToClient()));
+       // connect(this,SIGNAL(closeConnection()),this,SLOT(sockDisc()));
         m_timer->start(2000);
     }
     else
@@ -29,16 +32,9 @@ void Server::slotNewConnection()
     ++numClients;
     QTcpSocket *m_socket=new QTcpSocket;
     m_socket=this->nextPendingConnection();
-    QSignalMapper mapper(this);
-    connect(&mapper,SIGNAL(mapped(int)),this,SLOT(sockDisc(int)));
     int disc=m_socket->socketDescriptor();
-    SClients.insert(disc,m_socket);
-   // connect(SClients[disc],SIGNAL(readyRead()),this,SLOT(sockReady()));
-   //connect(SClients[disc],SIGNAL(disconnected()),this,SLOT(sockDisc()));
-    connect(SClients[disc],SIGNAL(disconnected()),&mapper,SLOT(map()));
-    mapper.setMapping(SClients[disc],disc);
-  //  connect(m_timer,SIGNAL(timeout()),this,SLOT(sendToClient()));
-  //  m_timer->start(2000);
+    SClients.push_back(m_socket);
+    connect(m_socket,SIGNAL(disconnected()),this,SLOT(sockDisc()));
 
     qDebug()<<disc<<" Client connected";
 }
@@ -46,14 +42,21 @@ void Server::slotNewConnection()
 
 void Server::sendToClient()
 {
-    foreach(int i,SClients.keys())
+    qDebug()<<"Amount of clients: "<<numClients<<"\n";
+    if (numClients==0)
     {
-        if (!SClients[i]->isOpen())
+        ++timesWaitingConnection;
+        if (timesWaitingConnection==10)
         {
-            SClients.remove(i);
-            --numClients;
+            qDebug()<<"Timeout\nExit";
+            m_app->exit();
         }
-        else
+    }
+   else
+    {
+        timesWaitingConnection=0;
+        QList<QTcpSocket*>::iterator it=SClients.begin();
+        while(it!=SClients.end())
         {
             QString str="LOL";
             QByteArray arr;
@@ -67,29 +70,24 @@ void Server::sendToClient()
             qint64 x=0;
             while (x<arr.size())
             {
-                qint64 y=SClients[i]->write(arr);
-                x+=y;
+                    qint64 y=dynamic_cast<QTcpSocket*>(*it)->write(arr);
+                    x+=y;
             }
+            ++it;
             m_nextBlockSize=0;
             qDebug()<<"Done\nListening...";
-           // pSocket->close();
-            //emit SClients[i]->disconnected();
-          //  SClients[i]->close();
-           //        //emit SClients[i]->disconnected();
-                   //SClients.remove(i);
         }
-
     }
-
 }
 
-void Server::sockDisc(int key)
+
+
+void Server::sockDisc()
 {
-  //  QTcpSocket *clientSocket=(QTcpSocket*)sender();
+    QTcpSocket *s=(QTcpSocket*)QObject::sender();
+    SClients.removeOne(s);
+    --numClients;
     qDebug()<<"\nClient is disconnected";
-    SClients[key]->close();
-    SClients.remove(key);
-    //SClients[key]->deleteLater();
 }
 
 void Server::serverClose()

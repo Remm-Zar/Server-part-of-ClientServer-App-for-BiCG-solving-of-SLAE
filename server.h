@@ -6,29 +6,34 @@
 #include <QMap>
 #include <QTimer>
 #include <QTime>
+#include <QCoreApplication>
 
 class Server: public QTcpServer
 {
     Q_OBJECT
 public:
 
-    QMap<int,QTcpSocket*> SClients;
+    QList<QTcpSocket*> SClients;
     int m_port;
     qint64 m_nextBlockSize;
-
-    Server(int port);
+    int timesWaitingConnection=0;
+    QCoreApplication *m_app;
+    Server(int port,QCoreApplication *app);
     void startServer();
 
 private:
 
     QTimer *m_timer;
     QTime m_start;
-    int numClients=0;
+    static int numClients;
+
+signals:
+    void closeConnection();
 
 public slots:
     void sendToClient();
     void slotNewConnection();
-    void sockDisc(int key);
+    void sockDisc();
     void serverClose();
 
 };
