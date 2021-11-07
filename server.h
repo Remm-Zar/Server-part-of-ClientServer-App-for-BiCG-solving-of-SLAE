@@ -4,6 +4,8 @@
 #include <QTcpSocket>
 #include <QList>
 #include <QMap>
+#include <QTimer>
+#include <QTime>
 
 class Server: public QTcpServer
 {
@@ -12,22 +14,22 @@ public:
 
     QMap<int,QTcpSocket*> SClients;
     int m_port;
- ///   QQueue<QTcpSocket*> sockets;
-    QByteArray m_mat;
-    QByteArray m_vec;
     qint64 m_nextBlockSize;
 
     Server(int port);
     void startServer();
 
 private:
-    void sendToClient(QTcpSocket *pSocket);
+
+    QTimer *m_timer;
+    QTime m_start;
+    int numClients=0;
 
 public slots:
-
+    void sendToClient();
     void slotNewConnection();
-    void sockReady();
     void sockDisc(int key);
+    void serverClose();
 
 };
 
